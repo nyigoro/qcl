@@ -14,11 +14,13 @@ export function renderQCL(componentId: string, props: any, container: HTMLElemen
 
 function qclRender(componentId: string) {
   let state = window.qclState[componentId] || {};
-  document.querySelectorAll<HTMLInputElement>('[data-bind]').forEach((el) => {
+  document.querySelectorAll<HTMLElement>('[data-bind]').forEach((el) => {
     let expr = el.dataset.bind!;
-    el.value = state[expr] || '';
+    if (el instanceof HTMLInputElement) {
+      el.value = state[expr] || '';
+    }
   });
-  document.querySelectorAll('[data-expr]').forEach((el) => {
+  document.querySelectorAll<HTMLElement>('[data-expr]').forEach((el) => {
     let expr = el.dataset.expr!;
     try {
       el.textContent = eval(expr);
@@ -26,7 +28,7 @@ function qclRender(componentId: string) {
       el.textContent = '';
     }
   });
-  document.querySelectorAll('[data-each]').forEach((tmpl) => {
+  document.querySelectorAll<HTMLElement>('[data-each]').forEach((tmpl) => {
     let expr = tmpl.dataset.each!;
     let items = eval(expr) || [];
     let parent = tmpl.parentElement!;
