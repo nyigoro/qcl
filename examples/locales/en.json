@@ -1,1 +1,5 @@
-
+{
+  "title": "My Todo App",
+  "add": "Add Todo",
+  "delete": "Delete"
+}
