@@ -66,6 +66,13 @@ export function transpileQCL(qclCode: string, translations: Record<string, Recor
       const style = component.content.find((c: any) => c.type === 'style')?.content || '';
       output.css += style.replace(/\.([^{]+)/g, `.${componentId}_$1`);
 
+     // In transpileQCL
+output.js += `
+  window.qclScripts['${node.name}_${componentId}'] = \`${component.content.find((c: any) => c.type === 'script')?.content || ''}\`;
+  window.qclState = window.qclState || {};
+  window.qclState['${node.name}_${componentId}'] = {};
+`;
+      
       // Generate JS (with data binding)
       const script = component.content.find((c: any) => c.type === 'script')?.content || '';
       output.js += `
