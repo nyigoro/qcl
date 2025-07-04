@@ -1,0 +1,35 @@
+<qcl>
+  <import component="Button" from="./Button.qcl" />
+  <component name="TodoApp" lang={props.lang}>
+    <style>
+      .todo { padding: 20px; font-family: Arial; }
+      .list { list-style: none; }
+      .input { padding: 8px; width: 200px; }
+    </style>
+    <markup>
+      <div class="todo">
+        <h1>{t('title', { lang: props.lang })}</h1>
+        <input class="input" bind:value="state.newTodo" />
+        <Button label={t('add', { lang: props.lang })} onclick={addTodo} />
+        <ul class="list">
+          <each item in state.todos>
+            <li>{item.text} <Button label={t('delete', { lang: props.lang })} onclick={deleteTodo(item.id)} /></li>
+          </each>
+        </ul>
+      </div>
+    </markup>
+    <script>
+      state = { todos: [{ id: 1, text: 'Learn QCL' }], newTodo: '' };
+      function addTodo() {
+        if (state.newTodo) {
+          state.todos.push({ id: Date.now(), text: state.newTodo });
+          state.newTodo = '';
+        }
+      }
+      function deleteTodo(id) {
+        state.todos = state.todos.filter(todo => todo.id !== id);
+      }
+    </script>
+  </component>
+  <TodoApp lang="en" />
+</qcl>
