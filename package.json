@@ -1,0 +1,25 @@
+{
+  "name": "qcl",
+  "version": "1.0.0",
+  "description": "Quick Component Language: A modern alternative to HTML",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "qcl": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "parse": "pegjs --format commonjs src/qcl.pegjs -o src/parser.js"
+  },
+  "dependencies": {
+    "commander": "^14.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "pegjs": "^0.10.0",
+    "jest": "^30.0.4",
+    "@jest/typest": "^30.0.1",
+    "ts-jest": "^29.4.0"
+  }
+}
