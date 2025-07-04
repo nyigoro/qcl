@@ -1,0 +1,55 @@
+<html>
+  <head>
+    <style>
+      .todo_TodoApp_123456 { padding: 20px; font-family: Arial; }
+      .list_TodoApp_123456 { list-style: none; }
+      .input_TodoApp_123456 { padding: 8px; width: 200px; }
+      .btn_Button_654321 { background: #0070f3; color: white; padding: 8px 16px; border: none; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <div class="todo_TodoApp_123456">
+      <h1><span data-expr="t('title', { lang: props.lang })"></span></h1>
+      <input class="input_TodoApp_123456" data-bind="state.newTodo" oninput="qclUpdate('TodoApp_123456', this)" placeholder="Enter a new todo" />
+      <button class="btn_Button_654321" onclick="addTodo()">Add Todo</button>
+      <ul class="list_TodoApp_123456">
+        <template data-each="state.todos">
+          <li><span data-expr="item.text"></span> <button class="btn_Button_654321" onclick="deleteTodo(item.id)">Delete</button></li>
+        </template>
+      </ul>
+    </div>
+    <script src="https://unpkg.com/qcl-runtime@1.0.0/dist/runtime.js"></script>
+    <script>
+      state = { newTodo: '', todos: [{ id: 1, text: 'Learn QCL' }] };
+      function addTodo() {
+        if (state.newTodo) {
+          state.todos.push({ id: Date.now(), text: state.newTodo });
+          state.newTodo = '';
+        }
+        qclRender('TodoApp_123456');
+      }
+      function deleteTodo(id) {
+        state.todos = state.todos.filter(todo => todo.id !== id);
+        qclRender('TodoApp_123456');
+      }
+      window.qclComponents = {"TodoApp":"TodoApp_123456","Button":"Button_654321"};
+      window.qclState = {};
+      const t = (key, params = {}) => {
+        const translations = {
+          en: {
+            title: "My Todo App",
+            placeholder: "Enter a new todo",
+            add: "Add Todo",
+            delete: "Delete"
+          }
+        };
+        let text = translations[params.lang || 'en']?.[key] || key;
+        for (const [param, value] of Object.entries(params)) {
+          text = text.replace(`{{${param}}}`, value);
+        }
+        return text;
+      };
+      qclRender('TodoApp_123456');
+    </script>
+  </body>
+</html>
