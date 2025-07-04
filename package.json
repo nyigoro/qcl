@@ -14,7 +14,7 @@
     "deploy-gh-pages": "npm run build && npx qcl compile examples/app.qcl --output dist --output-file index.html && npx qcl compile examples/counter.qcl --output dist --output-file counter.html && mkdir -p dist/locales && cp examples/locales/*.json dist/locales/ && cp dist/* . && gh-pages -d ."
   },
   "dependencies": {
-    "commander": "^9.4.1"
+    "commander": "^14.0.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.5",
@@ -23,7 +23,7 @@
     "jest": "^29.7.0",
     "pegjs": "^0.10.0",
     "ts-jest": "^29.1.1",
-    "typescript": "^5.2.2"
+    "typescript": "^5.8.3"
   },
   "license": "MIT",
   "repository": {

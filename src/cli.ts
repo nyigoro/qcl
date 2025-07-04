@@ -6,16 +6,26 @@ import path from 'path';
 program
   .command('compile <input>')
   .option('--output <path>', 'Output directory', 'dist')
-  .action((input, { output }) => {
+  .option('--output-file <file>', 'Output file name', 'output.html')
+  .action((input, { output, outputFile }) => {
     const qclCode = fs.readFileSync(input, 'utf-8');
-    const translations = JSON.parse(fs.readFileSync(path.join(path.dirname(input), 'locales/en.json'), 'utf-8'));
-    const { html, js, css } = transpileQCL(qclCode, { en: translations });
+    const { html, js, css } = transpileQCL(qclCode, input);
     fs.mkdirSync(output, { recursive: true });
-    fs.writeFileSync(
-      `${output}/output.html`,
-      `<html><head><style>${css}</style></head><body><div id="root">${html}</div><script src="runtime.js"></script><script>${js}</script><script>renderQCL('${Object.keys(window.qclComponents || {}).pop()}', {}, document.getElementById('root'));</script></body></html>`
-    );
-    fs.writeFileSync(`${output}/runtime.js`, fs.readFileSync(path.join(__dirname, 'runtime.js'), 'utf-8'));
+    const outputPath = path.join(output, outputFile);
+    fs.writeFileSync(outputPath, `
+      <html>
+        <head>
+          <style>${css}</style>
+        </head>
+        <body>
+          ${html}
+          <script src="runtime.js"></script>
+          <script>${js}</script>
+        </body>
+      </html>
+    `);
+    fs.copyFileSync('dist/runtime.js', path.join(output, 'runtime.js'));
+    console.log(`Compiled QCL to ${outputPath}`);
   });
 
 program.parse();
