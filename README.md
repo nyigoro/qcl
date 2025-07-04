@@ -12,7 +12,7 @@ Modularity: Import components with <import>.
 
 ## Setup
 
-Clone the repository:git clone https://github.com/your-username/quick-component-language.git
+Clone the repository:git clone https://github.com/nyigoro/quick-component-language.git
 cd quick-component-language
 
 
