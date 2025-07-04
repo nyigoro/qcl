@@ -1,0 +1,8 @@
+<component name="Button">
+  <style>
+    .btn { background: #0070f3; color: white; padding: 8px 16px; border: none; cursor: pointer; }
+  </style>
+  <markup>
+    <button class="btn">{props.label}</button>
+  </markup>
+</component>
