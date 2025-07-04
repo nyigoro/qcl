@@ -1,108 +1,101 @@
 import { parseQCL } from './parser';
+import fs from 'fs';
+import path from 'path';
 
 interface ASTNode {
   type: string;
   name?: string;
   attrs?: { name: string; value: string }[];
-  content?: any[];
-  tagName?: string;
-  item?: string;
-  collection?: string;
-  path?: string;
+  content?: any;
+  expr?: string;
+  component?: string;
+  from?: string;
 }
 
-export function transpileQCL(qclCode: string, translations: Record<string, Record<string, string>> = {}) {
+export function transpileQCL(qclCode: string, filePath: string = '') {
   const ast = parseQCL(qclCode);
   const output = { html: '', js: '', css: '' };
-  const components: Record<string, ASTNode> = {};
-  const imports: { component: string; path: string }[] = [];
+  const components: Record<string, string> = {};
+  let scriptContent = '';
+  let translations = {};
+  try {
+    translations = {
+      en: JSON.parse(fs.readFileSync(path.resolve(path.dirname(filePath), 'locales/en.json'), 'utf-8') || '{}'),
+      es: JSON.parse(fs.readFileSync(path.resolve(path.dirname(filePath), 'locales/es.json'), 'utf-8') || '{}'),
+    };
+  } catch (e) {
+    console.warn('Warning: Could not load translations', e);
+  }
 
-  // Process AST
-  ast.forEach((node: ASTNode) => {
-    if (node.type === 'component') {
-      components[node.name!] = node;
-    } else if (node.type === 'import') {
-      imports.push({ component: node.component!, path: node.path! });
-    }
-  });
-
-  // Generate code for each component instance
-  ast.forEach((node: ASTNode) => {
-    if (node.type === 'component' && !node.attrs?.find(attr => attr.name === 'name')) {
-      const component = components[node.name!];
-      const componentId = `${node.name}_${Math.random().toString(36).slice(2, 8)}`;
-      const props: Record<string, string> = {};
-      const bindings: { prop: string; stateKey: string }[] = [];
-
-      // Process attributes
-      node.attrs?.forEach(attr => {
-        if (attr.name.startsWith('bind:')) {
-          bindings.push({ prop: attr.name.slice(5), stateKey: attr.value });
-        } else {
-          props[attr.name] = attr.value;
+  function processNode(node: ASTNode, componentId: string): string {
+    if (node.type === 'tag') {
+      const attrs = node.attrs?.map(attr => {
+        if (attr.name === 'bind') {
+          return `data-bind="${attr.value}" oninput="qclUpdate('${componentId}', this)"`;
         }
-      });
+        if (attr.name === 'onclick') {
+          return `onclick="${attr.value.replace(/\(.+\)/, '')}()"`;
+        }
+        return `${attr.name}="${attr.value}"`;
+      }).join(' ') || '';
+      return `<${node.name} ${attrs}>${node.content?.map((c: ASTNode) => processNode(c, componentId)).join('')}</${node.name}>`;
+    } else if (node.type === 'each') {
+      return `<template data-each="${node.expr}">${node.content.map((c: ASTNode) => processNode(c, componentId)).join('')}</template>`;
+    } else if (node.type === 'text') {
+      return node.content.replace(/{t\('([^']+)',\s*{([^}]+)}\)}/g, (match, key, params) => {
+        const paramObj = params.split(',').reduce((obj: any, param: string) => {
+          const [k, v] = param.split(':').map(s => s.trim());
+          obj[k] = v.replace(/props\./g, `window.qclState.${componentId}.`);
+          return obj;
+        }, {});
+        return `<span data-expr="t('${key}', ${JSON.stringify(paramObj)})"></span>`;
+      }).replace(/{([^}]+)}/g, `<span data-expr="$1"></span>`);
+    }
+    return '';
+  }
 
-      // Generate HTML
-      const renderMarkup = (content: any[]): string => {
-        return content.map(item => {
-          if (item.type === 'tag') {
-            const attrs = item.attrs?.map(attr => `${attr.name}="${attr.value}"`).join(' ') || '';
-            return `<${item.tagName} ${attrs}>${renderMarkup(item.content)}</${item.tagName}>`;
-          } else if (item.type === 'text') {
-            return item.content;
-          } else if (item.type === 'binding') {
-            return `\${${item.name}}`;
-          } else if (item.type === 'each') {
-            return `\${${item.collection}.map(${item.item} => \`${renderMarkup(item.content)}\`).join('')}`;
-          }
-          return '';
-        }).join('');
-      };
+  function processImports(nodes: ASTNode[], basePath: string): ASTNode[] {
+    const importedComponents: ASTNode[] = [];
+    nodes.forEach(node => {
+      if (node.type === 'import') {
+        const importPath = path.resolve(basePath, node.from);
+        const importCode = fs.readFileSync(importPath, 'utf-8');
+        const importAst = parseQCL(importCode);
+        importedComponents.push(...processImports(importAst, path.dirname(importPath)));
+      } else {
+        importedComponents.push(node);
+      }
+    });
+    return importedComponents;
+  }
 
-      output.html += renderMarkup(component.content.find((c: any) => c.type === 'markup')?.content || []);
+  const resolvedAst = processImports(ast, path.dirname(filePath));
 
-      // Generate CSS (scoped)
-      const style = component.content.find((c: any) => c.type === 'style')?.content || '';
-      output.css += style.replace(/\.([^{]+)/g, `.${componentId}_$1`);
-
-     // In transpileQCL
-output.js += `
-  window.qclScripts['${node.name}_${componentId}'] = \`${component.content.find((c: any) => c.type === 'script')?.content || ''}\`;
-  window.qclState = window.qclState || {};
-  window.qclState['${node.name}_${componentId}'] = {};
-`;
-      
-      // Generate JS (with data binding)
-      const script = component.content.find((c: any) => c.type === 'script')?.content || '';
-      output.js += `
-        window.qclComponents = window.qclComponents || {};
-        window.qclComponents['${node.name}_${componentId}'] = (props, state) => {
-          return \`${output.html.replace(/\$/g, '\\$')}\`
-            .replace(/\\${props.([^}]+)}/g, (_, p) => props[p] || '')
-            ${bindings.map(b => `.replace(/\\${state.${b.stateKey}}/g, state['${b.stateKey}'] || '')`).join('')};
-        };
-        ${script}
-      `;
+  resolvedAst.forEach((node: ASTNode) => {
+    if (node.type === 'component') {
+      const componentId = `${node.name}_${Math.random().toString(36).slice(2, 8)}`;
+      components[node.name] = componentId;
+      output.html += node.content?.find((c: ASTNode) => c.type === 'markup')?.content
+        .map((c: ASTNode) => processNode(c, componentId)).join('') || '';
+      output.css += node.content?.find((c: ASTNode) => c.type === 'style')?.content
+        .replace(/\.([^{]+)/g, `.${componentId}_$1`) || '';
+      scriptContent += node.content?.find((c: ASTNode) => c.type === 'script')?.content || '';
     }
   });
 
-  // Add i18n support
-  output.js += `
-    const translations = ${JSON.stringify(translations)};
-    const t = (key, params = {}, lang = 'en') => {
-      let text = translations[lang]?.[key] || key;
+  output.js = `
+    ${scriptContent}
+    window.qclComponents = ${JSON.stringify(components)};
+    window.qclState = {};
+    const t = (key, params = {}) => {
+      const translations = ${JSON.stringify(translations)};
+      let text = translations[params.lang || 'en']?.[key] || key;
       for (const [param, value] of Object.entries(params)) {
-        text = text.replace(\`{{${param}}}\`, value);
+        text = text.replace(new RegExp('{{' + param + '}}', 'g'), value);
       }
       return text;
     };
+    qclRender('${Object.values(components)[0]}');
   `;
-
-  // Add imports
-  imports.forEach(imp => {
-    output.js += `// Import ${imp.component} from ${imp.path}\n`;
-  });
-
   return output;
 }
