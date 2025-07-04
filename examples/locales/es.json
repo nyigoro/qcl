@@ -1,0 +1,9 @@
+{
+  "title": "Mi Aplicación de Tareas",
+  "placeholder": "Ingresa una nueva tarea",
+  "add": "Agregar Tarea",
+  "delete": "Eliminar",
+  "counter_title": "Aplicación de Contador",
+  "increment": "Incrementar",
+  "decrement": "Decrementar"
+}
