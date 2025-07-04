@@ -8,11 +8,10 @@
     "qcl": "./dist/cli.js"
   },
   "scripts": {
-    "build": "tsc && npx pegjs --format commonjs src/qcl.pegjs -o src/parser.js",
+    "build": "tsc && npx pegjs --format commonjs src/qcl.pegjs -o src/parser.js && npx esbuild src/runtime.ts --bundle --minify --outfile=dist/runtime.js",
     "test": "jest",
     "prepublishOnly": "npm run build",
-    "deploy-docs": "cd docs && npm run build",
-    "deploy-gh-pages": "gh-pages -d dist"
+    "deploy-gh-pages": "npm run build && npx qcl compile examples/app.qcl --output dist --output-file index.html && npx qcl compile examples/counter.qcl --output dist --output-file counter.html && mkdir -p dist/locales && cp examples/locales/*.json dist/locales/ && cp dist/* . && gh-pages -d ."
   },
   "dependencies": {
     "commander": "^9.4.1"
@@ -29,6 +28,6 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/quick-component-language.git"
+    "url": "https://github.com/nyigoro/qcl.git"
   }
 }
